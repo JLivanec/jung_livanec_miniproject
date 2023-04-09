@@ -1,4 +1,8 @@
 import random
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import numpy as np
+import os
 
 class Agent:
     def __init__(self, x, y, environment):
@@ -93,8 +97,39 @@ class Environment:
         # Add current number of agents to list
         self.agent_counts.append(len(self.agents))
 
+    def animate(self):
+        plt.switch_backend('Agg') # don't show plot
+        fig, ax = plt.subplots()
+        ax.set_xlim(0,self.width)
+        ax.set_ylim(0,self.height)
+        scat_agents = ax.scatter([a.x for a in self.agents], [a.y for a in self.agents], c='k', s=3, marker='*')
+        scat_food = ax.scatter([f[0] for f in self.food_grid], [f[1] for f in self.food_grid], c='r', s=3, marker='x')
+        ax.set_title('Agents location')
+
+        def update(frame_number):
+            for agent in self.agents:
+                agent.move_to_food()
+                agent.eat()
+                # agent.calculate_fitness()
+                if random.random() < agent.death_rate:
+                    agent.die()
+            scat_agents.set_offsets(np.c_[[a.x for a in self.agents], [a.y for a in self.agents]])
+            scat_food.set_offsets(np.c_[[f[0] for f in self.food_grid], [f[1] for f in self.food_grid]])
+            return scat_agents,
+
+        ani = animation.FuncAnimation(fig=fig,
+                                        func=update,
+                                        frames=100,
+                                        interval=5,
+                                        blit=True)
+        mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
+        # writergif = animation.PillowWriter(fps=30)
+        # ani.save(mypath + "animation.gif", writer=writergif)
+        ani.save(mypath + 'animation.gif', writer='pillow')
+
 def simulate(iterations, num_agents=10, num_food=100) :
     env = Environment(100, 100, num_agents, num_food)
+    env.animate() # create animation
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Remaining Survivors: " + str(env.agent_counts[i]))
