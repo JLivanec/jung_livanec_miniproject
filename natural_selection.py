@@ -45,15 +45,15 @@ class Agent:
             self.environment.food_grid.remove((self.x, self.y))
             self.has_eaten = True
 
-    def calculate_fitness(self):
-        # Calculate fitness based on distance from center of environment
-        center_x = self.environment.width / 2
-        center_y = self.environment.height / 2
-        distance = ((self.x - center_x) ** 2 + (self.y - center_y) ** 2) ** 0.5
-        if distance == 0:
-            self.fitness = 0
-        else:
-            self.fitness = 1 / distance
+    # def calculate_fitness(self):
+    #     # Calculate fitness based on distance from center of environment
+    #     center_x = self.environment.width / 2
+    #     center_y = self.environment.height / 2
+    #     distance = ((self.x - center_x) ** 2 + (self.y - center_y) ** 2) ** 0.5
+    #     if distance == 0:
+    #         self.fitness = 0
+    #     else:
+    #         self.fitness = 1 / distance
 
     def die(self):
         self.environment.agents.remove(self)
