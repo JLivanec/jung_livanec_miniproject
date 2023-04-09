@@ -7,11 +7,39 @@ class Agent:
         self.fitness = 0
         self.environment = environment
         self.death_rate = 0.01
+        self.has_eaten = False
+
+    def manhattan(self, food):
+        return (abs(self.x - food[0]) + abs(self.y - food[1]))
 
     # Movement is completely random
-    def move(self):
+    def move_randomly(self):
         self.x += random.randint(-1, 1)
         self.y += random.randint(-1, 1)
+    
+    # Movement to closest food object
+    def move_to_food(self):
+        closest = None
+        dist = float('inf')
+
+        # get closest food
+        for i in range(len(self.environment.food_grid)):
+            distance_to_food = self.manhattan(self.environment.food_grid[i])
+            if distance_to_food < dist:
+                closest = self.environment.food_grid[i]
+                dist = distance_to_food
+        
+        # move to food if reasonable distance
+        if dist <= 2:
+            self.x = closest[0]
+            self.y = closest[1]
+        
+
+
+    def eat(self):
+        if ((self.x, self.y) in self.environment.food_grid):
+            self.environment.food_grid.remove((self.x, self.y))
+            self.has_eaten = True
 
     def calculate_fitness(self):
         # Calculate fitness based on distance from center of environment
@@ -23,48 +51,55 @@ class Agent:
         else:
             self.fitness = 1 / distance
 
-    # death is random, probability adjusted via death_rate
     def die(self):
-        if random.random() < self.death_rate:
-            self.environment.agents.remove(self)
+        self.environment.agents.remove(self)
 
 class Environment:
-    def __init__(self, width, height, num_agents):
+    def __init__(self, width, height, num_agents, num_food):
         self.width = width
         self.height = height
+        self.num_food = num_food
         self.agents = [Agent(random.randint(0, width), random.randint(0, height), self) for _ in range(num_agents)] # 10 agents to start
         self.agent_counts = [len(self.agents)]
-        self.avg_fitness = []
+        self.food_grid = []
+        self.remaining_food = []
+
+    def populate_food(self):
+        self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
+
+    def kill_the_hungry(self):
+        self.agents = [agent for agent in self.agents if agent.has_eaten]
 
     def step(self):
+        self.populate_food()
         for agent in self.agents:
-            agent.move()
-            agent.calculate_fitness()
-            agent.die()
+            agent.has_eaten = False
+            agent.move_to_food()
+            agent.eat()
+        
+        self.kill_the_hungry()
 
-        # Select agents for reproduction based on fitness
-        total_fitness = sum(agent.fitness for agent in self.agents)
-        probabilities = [agent.fitness / total_fitness for agent in self.agents]
+        self.remaining_food.append(len(self.food_grid))
+
+        # Select agents for reproduction based on food consumption
         new_agents = []
         for _ in range(len(self.agents)):
-            parent1 = random.choices(self.agents, probabilities)[0]
-            parent2 = random.choices(self.agents, probabilities)[0]
-            child_x = (parent1.x + parent2.x) / 2
-            child_y = (parent1.y + parent2.y) / 2
+            parent = random.choice(self.agents)
+            child_x = (parent.x)
+            child_y = (parent.y)
             new_agents.append(Agent(child_x, child_y, self))
-
-        # Replace old agents with new ones
         self.agents = new_agents
-
-        # Update average fitness as metric
-        self.avg_fitness.append(total_fitness / len(self.agents)) if len(self.agents) else self.avg_fitness.append(0)
 
         # Add current number of agents to list
         self.agent_counts.append(len(self.agents))
 
-def simulate(iterations, num_agents=10) :
-    env = Environment(100, 100, num_agents)
+def simulate(iterations, num_agents=10, num_food=100) :
+    env = Environment(100, 100, num_agents, num_food)
     for i in range(iterations) :
+        print("Iteration Number " + str(i+1))
+        print("Remaining Survivors: " + str(env.agent_counts[i]))
         env.step()
+        
         if i == iterations - 1 :
-            return(env.agent_counts, env.avg_fitness)
+            print(env.agent_counts)
+            return(env.agent_counts, env.remaining_food)
