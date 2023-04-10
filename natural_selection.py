@@ -33,8 +33,8 @@ class Agent:
         if dist <= 2:
             self.x = closest[0]
             self.y = closest[1]
-        
-
+        else:
+            self.move_randomly()      
 
     def eat(self):
         if ((self.x, self.y) in self.environment.food_grid):
