@@ -2,15 +2,15 @@ import matplotlib.pyplot as plt
 from natural_selection import simulate
 import os
 
-agent_count, food = simulate(10, 100, 1000)
+population, food, speed = simulate(20, 10, 50)
 
 fig, axs = plt.subplots(2)
-fig.suptitle("Agent Population and Fitness Over Time")
-axs[0].plot(agent_count)
-axs[0].set(ylabel="Number of Agents", xlabel="Generations")
-axs[1].plot(food)
-axs[1].set(ylabel="Remaining Food", xlabel="Generations")
+fig.suptitle("Agent Population and Speed Over Time")
+axs[0].plot(population)
+axs[0].set(ylabel="Population of Agents", xlabel="Generations")
+axs[1].plot(speed)
+axs[1].set(ylabel="Average Agent Speed", xlabel="Generations")
 
 mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
 fig.savefig(mypath + "iteration_plot.png")
-# plt.show()
+plt.show()

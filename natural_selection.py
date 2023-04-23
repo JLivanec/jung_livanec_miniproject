@@ -9,15 +9,13 @@ class Agent:
     def __init__(self, x, y, environment):
         self.x = x
         self.y = y
-        self.fitness = 0
         self.environment = environment
-        self.death_rate = 0.01
         self.satiated = False
-        self.energy = 15
-        self.speed = 2
-        self.movement_cost = 1 / self.speed
-        self.food_reward = 15
-        self.stationary_penalty = 0.75
+        self.energy = 15 # starting energy when agent is spawned
+        self.speed = 1
+        self.movement_cost = self.speed # 1/speed to get step cost, * speed^2 as biological limitation, add'l energy for add'l speed
+        self.food_reward = 10 # reward collected for consuming food
+        self.stationary_penalty = 1 # penalty for remaining stationary
 
     def manhattan(self, food):
         return (abs(self.x - food[0]) + abs(self.y - food[1]))
@@ -76,26 +74,19 @@ class Agent:
             if distance_to_food < dist:
                 closest = self.environment.food_grid[i]
                 dist = distance_to_food
-        #print("distance to food is: " + str(dist) + ", energy is " + str(self.energy))
 
         # determine whether the food is worth consuming
         if dist < (self.energy * self.speed):
-            #print("agent will pursue food located at " + str(closest))
             self.shortest_path_step(closest)
             self.eat()   
         else:
             self.energy -= self.stationary_penalty
             self.satiated = True
-            #print("agent remains stationary")
 
     def eat(self):
         if ((self.x, self.y) in self.environment.food_grid):
             self.environment.food_grid.remove((self.x, self.y))
             self.energy += self.food_reward
-            #print("agent has eaten")
-
-    def die(self):
-        self.environment.agents.remove(self)
 
 # ENVIRONMENT CLASS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Environment:
@@ -107,7 +98,8 @@ class Environment:
         self.agent_counts = [len(self.agents)]
         self.food_grid = []
         self.remaining_food = []
-        self.avg_energy = 0
+        self.avg_energy = []
+        self.avg_speed = []
 
     def populate_food(self):
         self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
@@ -115,34 +107,63 @@ class Environment:
     def kill_the_weak(self):
         self.agents = [agent for agent in self.agents if agent.energy > 0.0]
 
+    def calculate_energy_avg(self):
+        energy = [agent.energy for agent in self.agents]
+        avg = sum(energy) / len(energy)
+        return avg
+    
+    def calculate_speed_avg(self):
+        speed = [agent.speed for agent in self.agents]
+        avg = sum(speed) / len(speed)
+        return avg
+
+    # function that simulates one generation
     def step(self):
         self.populate_food()
         all_agents_satiated = False
+
+        # move all agents one step at a time until all are satiated
         while not all_agents_satiated:
-            #print("ROUND OF MOVEMENT, NOT ALL AGENTS SATIATED")
             satiation = []
             for agent in self.agents:
-                #print("agent position: (" + str(agent.x) + ", " + str(agent.y) + ")")
                 agent.move_to_food()
-                #print("agent position after step: (" + str(agent.x) + ", " + str(agent.y) + ")")
-                #if agent.satiated:
-                #    print("agent is satiated")
-                #else:
-                #    print("agent still hungry")
                 satiation.append(agent.satiated)
             all_agents_satiated = all(satiation)
         
+        # remove agents with energy < 0
         self.kill_the_weak()
 
+        # write metrics to lists for examiniation
         self.remaining_food.append(len(self.food_grid))
+        if len(self.agents) > 0:
+            self.avg_energy.append(self.calculate_energy_avg())
+            self.avg_speed.append(self.calculate_speed_avg())
+        else:
+            self.avg_energy.append(0)
+            self.avg_speed.append(0)
 
-        # Select agents for reproduction based on food consumption
+        # REALLOCATION OF SURVIVING AGENTS AND REPRODUCTION
+        num_survivors = len(self.agents)
         new_agents = []
-        for _ in range(len(self.agents)):
+        # random mutation occurs with the following odds
+        speed_boost = {0 : 10, 1 : 2, 2 : 1}
+
+        for _ in range(num_survivors):
+            # all surviving agents persist the next generation
             parent = random.choice(self.agents)
-            child_x = (parent.x)
-            child_y = (parent.y)
-            new_agents.append(Agent(child_x, child_y, self))
+            parent.x = random.randint(0, self.width)
+            parent.y = random.randint(0, self.height)
+            parent_speed = parent.speed
+            new_parent = Agent(parent.x, parent.y, self)
+            # all surviving agents will replicate
+            new_parent.speed = parent_speed
+            new_agents.append(new_parent)
+            # speed of child randomly mutates
+            speed = parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
+            child_agent = Agent(random.randint(0, self.width), random.randint(0, self.height), self)
+            child_agent.speed = speed
+            new_agents.append(child_agent)
+    
         self.agents = new_agents
 
         # Add current number of agents to list
@@ -181,12 +202,13 @@ class Environment:
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents=10, num_food=100) :
     env = Environment(50, 50, num_agents, num_food)
+    # ANIMATE WILL OVERWRITE ENV, CANNOT RUN FOR CHARTS
     #env.animate() # create animation
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
-        print("Remaining Survivors: " + str(env.agent_counts[i]))
+        print("Total Population: " + str(env.agent_counts[i]))
         env.step()
         
         if i == iterations - 1 :
             print(env.agent_counts)
-            return(env.agent_counts, env.remaining_food)
+            return(env.agent_counts, env.avg_energy, env.avg_speed)
