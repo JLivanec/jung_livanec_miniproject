@@ -168,32 +168,64 @@ class Environment:
 
         # Add current number of agents to list
         self.agent_counts.append(len(self.agents))
+        
+        return self.agents, self.food_grid
 
-    def animate(self):
+    # Function that generates animation in gif format
+    def animate(self, env, iterations):
+            
         plt.switch_backend('Agg') # don't show plot
-        fig, ax = plt.subplots()
-        ax.set_xlim(0,self.width)
-        ax.set_ylim(0,self.height)
-        scat_agents = ax.scatter([a.x for a in self.agents], [a.y for a in self.agents], c='k', s=3, marker='*')
-        scat_food = ax.scatter([f[0] for f in self.food_grid], [f[1] for f in self.food_grid], c='r', s=3, marker='x')
-        ax.set_title('Agents location')
+        fig, (ax1, ax2) = plt.subplots(2, 1)
+        ax1.set_xlim(0, self.width)
+        ax1.set_ylim(0, self.height)
+        ax1.set_title('Agents location')
+        ax1.set_xlabel('X')
+        ax1.set_ylabel('Y')
+        
+        ax2.set_title('Number of Agents')
+        ax2.set_xlabel('Generations')
+        ax2.set_ylabel('Number of Agents')
+        ax2.set_xlim(0, iterations)
+        ax2.set_ylim(0, 30)
+        ax2.set_xticks(np.arange(0, iterations, 1))
+        
+        fig.set_figheight(8)
+        fig.set_figwidth(5)
+        fig.tight_layout()
+        
+        scat_agents = ax1.scatter([], [], c='k', s=30, marker='*', label='Agent')
+        scat_food = ax1.scatter([], [], c='r', s=30, marker='x', label='Food')
+        line_agents, = ax2.plot([], [], c='k') # initialise empty line_agents
+
+        num_agents_list = []
 
         def update(frame_number):
-            for agent in self.agents:
-                agent.move_to_food()
-                agent.eat()
-                # agent.calculate_fitness()
-                if random.random() < agent.death_rate:
-                    agent.die()
-            scat_agents.set_offsets(np.c_[[a.x for a in self.agents], [a.y for a in self.agents]])
-            scat_food.set_offsets(np.c_[[f[0] for f in self.food_grid], [f[1] for f in self.food_grid]])
-            return scat_agents,
-
+            agent, food = env.step()
+            
+            scat_agents.set_offsets(np.c_[[a.x for a in agent], [a.y for a in agent]])
+            scat_food.set_offsets(np.c_[[f[0] for f in food], [f[1] for f in food]])
+            
+            num_agents = len(self.agents)
+            ax1.set_title('Agents location - Generation #%i (No. of Agents: %s)' %(frame_number, num_agents))
+            
+            num_agents_list.append(num_agents)
+            line_agents.set_data(range(len(num_agents_list)), num_agents_list)
+            
+            return scat_agents, line_agents
+        
+        # Legend for each figure
+        ax1.legend(loc='lower center', bbox_to_anchor = (0.5, -0.3), ncol=2)
+        plt.subplots_adjust(wspace=0, hspace=0.4)
+        
+        # interval = delay between frames in milliseconds
+        # blit = optimise drawing
         ani = animation.FuncAnimation(fig=fig,
                                         func=update,
-                                        frames=100,
-                                        interval=5,
-                                        blit=True)
+                                        frames=iterations,
+                                        interval=500,
+                                        blit=False,
+                                        repeat=True,
+                                        )
         mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
         # writergif = animation.PillowWriter(fps=30)
         # ani.save(mypath + "animation.gif", writer=writergif)
@@ -202,8 +234,7 @@ class Environment:
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents=10, num_food=100) :
     env = Environment(50, 50, num_agents, num_food)
-    # ANIMATE WILL OVERWRITE ENV, CANNOT RUN FOR CHARTS
-    #env.animate() # create animation
+    env.animate(env, iterations)
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
