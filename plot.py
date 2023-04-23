@@ -3,6 +3,10 @@ import matplotlib.animation as animation
 from natural_selection import simulate
 import os
 
+# input for simulation:
+# 1. number of total generations to run
+# 2. number of agents at start of simulation
+# 3. number of food items for agents to consume at each generation
 population, food, speed = simulate(20, 10, 50)
 
 fig, axs = plt.subplots(2)
