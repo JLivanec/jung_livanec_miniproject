@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 import numpy as np
 import os
 
+# AGENT CLASS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Agent:
     def __init__(self, x, y, environment):
         self.x = x
@@ -11,7 +12,12 @@ class Agent:
         self.fitness = 0
         self.environment = environment
         self.death_rate = 0.01
-        self.has_eaten = False
+        self.satiated = False
+        self.energy = 15
+        self.speed = 2
+        self.movement_cost = 1 / self.speed
+        self.food_reward = 15
+        self.stationary_penalty = 0.75
 
     def manhattan(self, food):
         return (abs(self.x - food[0]) + abs(self.y - food[1]))
@@ -20,6 +26,44 @@ class Agent:
     def move_randomly(self):
         self.x += random.randint(-1, 1)
         self.y += random.randint(-1, 1)
+
+    # take a step length towards closest food
+    # this world has no walls, so pathfinding would be unnecessarily expensive
+    # we can just move the exact manhattan distance
+    def shortest_path_step(self, pos):
+        spaces_to_move = self.speed
+        pos_x, pos_y = pos
+        agent_x = self.x
+        agent_y = self.y
+        y_delta = pos_y - agent_y
+        x_delta = pos_x - agent_x
+        consumed = y_delta == 0 and x_delta == 0
+
+        while spaces_to_move > 0 and not consumed:
+            if abs(y_delta) > abs(x_delta):
+                # move down
+                if y_delta < 0:
+                    self.y = agent_y - 1
+                # move up
+                else:
+                    self.y = agent_y + 1
+            else:
+                # move left
+                if x_delta < 0:
+                    self.x = agent_x - 1
+                # move right
+                else:
+                    self.x = agent_x + 1
+            # decrement number of moves in sequence
+            spaces_to_move -= 1
+            # consume energy for movement
+            self.energy -= self.movement_cost
+            # reset vars
+            agent_x = self.x
+            agent_y = self.y
+            y_delta = pos_y - agent_y
+            x_delta = pos_x - agent_x
+            consumed = y_delta == 0 and x_delta == 0
     
     # Movement to closest food object
     def move_to_food(self):
@@ -32,32 +76,28 @@ class Agent:
             if distance_to_food < dist:
                 closest = self.environment.food_grid[i]
                 dist = distance_to_food
-        
-        # move to food if reasonable distance
-        if dist <= 2:
-            self.x = closest[0]
-            self.y = closest[1]
+        #print("distance to food is: " + str(dist) + ", energy is " + str(self.energy))
+
+        # determine whether the food is worth consuming
+        if dist < (self.energy * self.speed):
+            #print("agent will pursue food located at " + str(closest))
+            self.shortest_path_step(closest)
+            self.eat()   
         else:
-            self.move_randomly()      
+            self.energy -= self.stationary_penalty
+            self.satiated = True
+            #print("agent remains stationary")
 
     def eat(self):
         if ((self.x, self.y) in self.environment.food_grid):
             self.environment.food_grid.remove((self.x, self.y))
-            self.has_eaten = True
-
-    # def calculate_fitness(self):
-    #     # Calculate fitness based on distance from center of environment
-    #     center_x = self.environment.width / 2
-    #     center_y = self.environment.height / 2
-    #     distance = ((self.x - center_x) ** 2 + (self.y - center_y) ** 2) ** 0.5
-    #     if distance == 0:
-    #         self.fitness = 0
-    #     else:
-    #         self.fitness = 1 / distance
+            self.energy += self.food_reward
+            #print("agent has eaten")
 
     def die(self):
         self.environment.agents.remove(self)
 
+# ENVIRONMENT CLASS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Environment:
     def __init__(self, width, height, num_agents, num_food):
         self.width = width
@@ -67,21 +107,32 @@ class Environment:
         self.agent_counts = [len(self.agents)]
         self.food_grid = []
         self.remaining_food = []
+        self.avg_energy = 0
 
     def populate_food(self):
         self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
 
-    def kill_the_hungry(self):
-        self.agents = [agent for agent in self.agents if agent.has_eaten]
+    def kill_the_weak(self):
+        self.agents = [agent for agent in self.agents if agent.energy > 0.0]
 
     def step(self):
         self.populate_food()
-        for agent in self.agents:
-            agent.has_eaten = False
-            agent.move_to_food()
-            agent.eat()
+        all_agents_satiated = False
+        while not all_agents_satiated:
+            #print("ROUND OF MOVEMENT, NOT ALL AGENTS SATIATED")
+            satiation = []
+            for agent in self.agents:
+                #print("agent position: (" + str(agent.x) + ", " + str(agent.y) + ")")
+                agent.move_to_food()
+                #print("agent position after step: (" + str(agent.x) + ", " + str(agent.y) + ")")
+                #if agent.satiated:
+                #    print("agent is satiated")
+                #else:
+                #    print("agent still hungry")
+                satiation.append(agent.satiated)
+            all_agents_satiated = all(satiation)
         
-        self.kill_the_hungry()
+        self.kill_the_weak()
 
         self.remaining_food.append(len(self.food_grid))
 
@@ -127,9 +178,10 @@ class Environment:
         # ani.save(mypath + "animation.gif", writer=writergif)
         ani.save(mypath + 'animation.gif', writer='pillow')
 
+# DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents=10, num_food=100) :
-    env = Environment(100, 100, num_agents, num_food)
-    env.animate() # create animation
+    env = Environment(50, 50, num_agents, num_food)
+    #env.animate() # create animation
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Remaining Survivors: " + str(env.agent_counts[i]))
