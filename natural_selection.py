@@ -176,12 +176,15 @@ class Environment:
             
         plt.switch_backend('Agg') # don't show plot
         fig, (ax1, ax2) = plt.subplots(2, 1)
+
+        # ax1 for agents and food locations in scatter plot
         ax1.set_xlim(0, self.width)
         ax1.set_ylim(0, self.height)
         ax1.set_title('Agents location')
         ax1.set_xlabel('X')
         ax1.set_ylabel('Y')
         
+        # ax2 for number of agents over time (generations)
         ax2.set_title('Number of Agents')
         ax2.set_xlabel('Generations')
         ax2.set_ylabel('Number of Agents')
@@ -193,6 +196,7 @@ class Environment:
         fig.set_figwidth(5)
         fig.tight_layout()
         
+        # initialise each plot
         scat_agents = ax1.scatter([], [], c='k', s=30, marker='*', label='Agent')
         scat_food = ax1.scatter([], [], c='r', s=30, marker='x', label='Food')
         line_agents, = ax2.plot([], [], c='k') # initialise empty line_agents
@@ -206,8 +210,11 @@ class Environment:
             scat_food.set_offsets(np.c_[[f[0] for f in food], [f[1] for f in food]])
             
             num_agents = len(self.agents)
+            
+            # update the title of scatter plot
             ax1.set_title('Agents location - Generation #%i (No. of Agents: %s)' %(frame_number, num_agents))
             
+            # monitor the number of agents at each generation
             num_agents_list.append(num_agents)
             line_agents.set_data(range(len(num_agents_list)), num_agents_list)
             
@@ -217,7 +224,7 @@ class Environment:
         ax1.legend(loc='lower center', bbox_to_anchor = (0.5, -0.3), ncol=2)
         plt.subplots_adjust(wspace=0, hspace=0.4)
         
-        # interval = delay between frames in milliseconds
+        # interval = delay between frames in milliseconds, e.g., 500 = 0.5 sec for each frame
         # blit = optimise drawing
         ani = animation.FuncAnimation(fig=fig,
                                         func=update,
