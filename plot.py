@@ -7,7 +7,7 @@ import os
 # 1. number of total generations to run
 # 2. number of agents at start of simulation
 # 3. number of food items for agents to consume at each generation
-population, food, speed = simulate(20, 10, 50)
+population, food, speed = simulate(20, 15, 50)
 
 fig, axs = plt.subplots(2)
 fig.suptitle("Agent Population and Speed Over Time")

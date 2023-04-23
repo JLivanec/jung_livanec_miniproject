@@ -172,7 +172,7 @@ class Environment:
         return self.agents, self.food_grid
 
     # Function that generates animation in gif format
-    def animate(self, env, iterations):
+    def animate(self, env, iterations, num_agents):
             
         plt.switch_backend('Agg') # don't show plot
         fig, (ax1, ax2) = plt.subplots(2, 1)
@@ -189,19 +189,20 @@ class Environment:
         ax2.set_xlabel('Generations')
         ax2.set_ylabel('Number of Agents')
         ax2.set_xlim(0, iterations)
-        ax2.set_ylim(0, 30)
+        ax2.set_ylim(0, int(num_agents*1.5))
         ax2.set_xticks(np.arange(0, iterations, 1))
+        ax2.set_yticks(np.arange(0, int(num_agents*1.5), int(num_agents*0.2)))
         
         fig.set_figheight(8)
         fig.set_figwidth(5)
         fig.tight_layout()
         
         # initialise each plot
-        scat_agents = ax1.scatter([], [], c='k', s=30, marker='*', label='Agent')
-        scat_food = ax1.scatter([], [], c='r', s=30, marker='x', label='Food')
+        scat_agents = ax1.scatter([a.x for a in self.agents], [a.y for a in self.agents], c='k', s=30, marker='*', label='Agent')
+        scat_food = ax1.scatter([f[0] for f in self.food_grid], [f[1] for f in self.food_grid], c='r', s=30, marker='x', label='Food')
         line_agents, = ax2.plot([], [], c='k') # initialise empty line_agents
 
-        num_agents_list = []
+        num_agents_list = [num_agents]
 
         def update(frame_number):
             agent, food = env.step()
@@ -239,9 +240,9 @@ class Environment:
         ani.save(mypath + 'animation.gif', writer='pillow')
 
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def simulate(iterations, num_agents=10, num_food=100) :
+def simulate(iterations, num_agents, num_food) :
     env = Environment(50, 50, num_agents, num_food)
-    env.animate(env, iterations)
+    env.animate(env, iterations, num_agents)
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
