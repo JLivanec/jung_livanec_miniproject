@@ -285,7 +285,7 @@ class Environment:
                                       interval=100,
                                       repeat=True)
             
-            ani.save(mypath + f'individual_agents/animation_agent_#{i}.gif', writer='pillow')
+            ani.save(mypath + f'individual_agents_animation/animation_agent_#{i}.gif', writer='pillow')
 
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents, num_food) :
