@@ -260,7 +260,7 @@ class Environment:
         # ani.save(mypath + "animation.gif", writer=writergif)
         ani.save(mypath + 'animation.gif', writer='pillow')
     
-    def animate_agent(self, env, num_agents):
+    def animate_agent(self):
         mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
         figs = []
         for i in range(len(self.positions)):
