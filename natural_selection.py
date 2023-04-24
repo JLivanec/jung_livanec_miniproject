@@ -2,6 +2,7 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
+import pandas as pd
 import os
 
 # AGENT CLASS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,9 +101,13 @@ class Environment:
         self.remaining_food = []
         self.avg_energy = []
         self.avg_speed = []
+        self.positions = [[] for _ in range(num_agents)]
+        self.food_positions = []
 
     def populate_food(self):
         self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
+        self.food_positions.append(self.food_grid)
+        return self.food_positions
 
     def kill_the_weak(self):
         self.agents = [agent for agent in self.agents if agent.energy > 0.0]
@@ -121,13 +126,17 @@ class Environment:
     def step(self):
         self.populate_food()
         all_agents_satiated = False
-
+        
         # move all agents one step at a time until all are satiated
         while not all_agents_satiated:
             satiation = []
-            for agent in self.agents:
+            for i, agent in enumerate(self.agents):
                 agent.move_to_food()
                 satiation.append(agent.satiated)
+                # print(i, len(self.positions), len(self.agents))
+                if len(self.positions) <= i:
+                    self.positions.append([])
+                self.positions[i].append((agent.x, agent.y))
             all_agents_satiated = all(satiation)
         
         # remove agents with energy < 0
@@ -169,10 +178,22 @@ class Environment:
         # Add current number of agents to list
         self.agent_counts.append(len(self.agents))
         
-        return self.agents, self.food_grid
+        # All agents movement plotted
+        mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
+        if len(self.agents) > 0:
+            # plot the movement of all agents at each time step
+            fig, ax = plt.subplots()
+            for i in range(len(self.positions)):
+                x_values = [x[0] for x in self.positions[i]]
+                y_values = [y[1] for y in self.positions[i]]
+                ax.plot(x_values, y_values)
+            
+            fig.savefig(mypath + 'agents_movement.png')
+        
+        return self.agents, self.food_grid, self.positions
 
     # Function that generates animation in gif format
-    def animate(self, env, iterations, num_agents):
+    def animate_generation(self, env, iterations, num_agents):
             
         plt.switch_backend('Agg') # don't show plot
         fig, (ax1, ax2) = plt.subplots(2, 1)
@@ -205,7 +226,7 @@ class Environment:
         num_agents_list = [num_agents]
 
         def update(frame_number):
-            agent, food = env.step()
+            agent, food, pos = env.step()
             
             scat_agents.set_offsets(np.c_[[a.x for a in agent], [a.y for a in agent]])
             scat_food.set_offsets(np.c_[[f[0] for f in food], [f[1] for f in food]])
@@ -238,11 +259,39 @@ class Environment:
         # writergif = animation.PillowWriter(fps=30)
         # ani.save(mypath + "animation.gif", writer=writergif)
         ani.save(mypath + 'animation.gif', writer='pillow')
+    
+    def animate_agent(self, env, num_agents):
+        mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
+        figs = []
+        for i in range(len(self.positions)):
+            figs.append(plt.figure())
+            
+            def update(frame_number):
+                plt.clf()
+                plt.xlim([0,self.width])
+                plt.ylim([0,self.height])
+                plt.title(f"Time Step: {frame_number}")
+                x_values = [x[0] for x in self.positions[i][:frame_number]]
+                y_values = [y[1] for y in self.positions[i][:frame_number]]
+                plt.plot(x_values, y_values)
+                
+                # food_x_values = [x[0] for x in self.food_positions[frame_number]]
+                # food_y_values = [y[1] for y in self.food_positions[frame_number]]
+                # plt.scatter(food_x_values, food_y_values)
+                
+            ani = animation.FuncAnimation(fig=figs[i],
+                                      func=update,
+                                      frames=len(self.positions[0]),
+                                      interval=100,
+                                      repeat=True)
+            
+            ani.save(mypath + f'individual_agents/animation_agent_#{i}.gif', writer='pillow')
 
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents, num_food) :
     env = Environment(50, 50, num_agents, num_food)
-    env.animate(env, iterations, num_agents)
+    env.animate_generation(env, iterations, num_agents)
+    env.animate_agent(env, num_agents)
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
