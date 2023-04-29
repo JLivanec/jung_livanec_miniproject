@@ -12,11 +12,12 @@ class Agent:
         self.y = y
         self.environment = environment
         self.satiated = False
-        self.energy = 15 # starting energy when agent is spawned
+        self.energy = 10 # starting energy when agent is spawned
         self.speed = 1
-        self.movement_cost = self.speed # 1/speed to get step cost, * speed^2 as biological limitation, add'l energy for add'l speed
-        self.food_reward = 10 # reward collected for consuming food
-        self.stationary_penalty = 1 # penalty for remaining stationary
+        self.size = 1
+        self.movement_cost = self.speed * (self.size ** 3)# 1/speed to get step cost, * speed^2 as biological limitation, add'l energy for add'l speed
+        self.food_reward = 15 # reward collected for consuming food
+        self.stationary_penalty = 5 # penalty for remaining stationary
 
     def manhattan(self, food):
         return (abs(self.x - food[0]) + abs(self.y - food[1]))
@@ -101,6 +102,7 @@ class Environment:
         self.remaining_food = []
         self.avg_energy = []
         self.avg_speed = []
+        self.avg_size = []
         self.positions = [[] for _ in range(num_agents)]
         self.food_positions = []
 
@@ -120,6 +122,11 @@ class Environment:
     def calculate_speed_avg(self):
         speed = [agent.speed for agent in self.agents]
         avg = sum(speed) / len(speed)
+        return avg
+    
+    def calculate_size_avg(self):
+        size = [agent.size for agent in self.agents]
+        avg = sum(size) / len(size)
         return avg
 
     # function that simulates one generation
@@ -147,15 +154,18 @@ class Environment:
         if len(self.agents) > 0:
             self.avg_energy.append(self.calculate_energy_avg())
             self.avg_speed.append(self.calculate_speed_avg())
+            self.avg_size.append(self.calculate_size_avg())
         else:
             self.avg_energy.append(0)
             self.avg_speed.append(0)
+            self.avg_size.append(0)
 
         # REALLOCATION OF SURVIVING AGENTS AND REPRODUCTION
         num_survivors = len(self.agents)
         new_agents = []
         # random mutation occurs with the following odds
         speed_boost = {0 : 10, 1 : 2, 2 : 1}
+        size_boost = {-0.05:1, 1:10, 0.05:1}
 
         for _ in range(num_survivors):
             # all surviving agents persist the next generation
@@ -163,14 +173,20 @@ class Environment:
             parent.x = random.randint(0, self.width)
             parent.y = random.randint(0, self.height)
             parent_speed = parent.speed
+            parent_size = parent.size
             new_parent = Agent(parent.x, parent.y, self)
             # all surviving agents will replicate
             new_parent.speed = parent_speed
+            new_parent.size = parent_size
             new_agents.append(new_parent)
             # speed of child randomly mutates
             speed = parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
+            size = parent_size * random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0]
+            if size <= 0.05:
+                size = 0.05
             child_agent = Agent(random.randint(0, self.width), random.randint(0, self.height), self)
             child_agent.speed = speed
+            child_agent.size = size
             new_agents.append(child_agent)
     
         self.agents = new_agents
@@ -179,16 +195,16 @@ class Environment:
         self.agent_counts.append(len(self.agents))
         
         # All agents movement plotted
-        mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
-        if len(self.agents) > 0:
+        #mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
+        #if len(self.agents) > 0:
             # plot the movement of all agents at each time step
-            fig, ax = plt.subplots()
-            for i in range(len(self.positions)):
-                x_values = [x[0] for x in self.positions[i]]
-                y_values = [y[1] for y in self.positions[i]]
-                ax.plot(x_values, y_values)
+        #    fig, ax = plt.subplots()
+        #   for i in range(len(self.positions)):
+        #        x_values = [x[0] for x in self.positions[i]]
+        #        y_values = [y[1] for y in self.positions[i]]
+        #        ax.plot(x_values, y_values)
             
-            fig.savefig(mypath + 'agents_movement.png')
+        #    fig.savefig(mypath + 'agents_movement.png')
         
         return self.agents, self.food_grid, self.positions
 
@@ -290,8 +306,8 @@ class Environment:
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def simulate(iterations, num_agents, num_food) :
     env = Environment(50, 50, num_agents, num_food)
-    env.animate_generation(env, iterations, num_agents)
-    env.animate_agent(env, num_agents)
+    #env.animate_generation(env, iterations, num_agents)
+    #env.animate_agent(env, num_agents)
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
@@ -299,4 +315,4 @@ def simulate(iterations, num_agents, num_food) :
         
         if i == iterations - 1 :
             print(env.agent_counts)
-            return(env.agent_counts, env.avg_energy, env.avg_speed)
+            return(env.agent_counts, env.avg_energy, env.avg_speed, env.avg_size)
