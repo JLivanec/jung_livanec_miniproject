@@ -17,7 +17,7 @@ class Agent:
         self.size = 10
         self.movement_cost = self.speed * (self.size ** 3)# 1/speed to get step cost, * speed^2 as biological limitation, add'l energy for add'l speed
         self.food_reward = 13000 # reward collected for consuming food
-        self.stationary_penalty = 1 # penalty for remaining stationary
+        self.stationary_penalty = 1000 # penalty for remaining stationary
 
     def manhattan(self, food):
         return (abs(self.x - food[0]) + abs(self.y - food[1]))
@@ -105,6 +105,8 @@ class Environment:
         self.avg_size = []
         self.positions = [[] for _ in range(num_agents)]
         self.food_positions = []
+        self.speed_dist = []
+        self.size_dist = []
 
     def populate_food(self):
         self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
@@ -159,6 +161,13 @@ class Environment:
             self.avg_energy.append(0)
             self.avg_speed.append(0)
             self.avg_size.append(0)
+            
+        if len(self.agents) > 0:
+            self.speed_dist.append([agent.speed for agent in self.agents])
+            self.size_dist.append([agent.size for agent in self.agents])
+        else:
+            self.speed_dist.append([0])
+            self.size_dist.append([0])
 
         # REALLOCATION OF SURVIVING AGENTS AND REPRODUCTION
         num_survivors = len(self.agents)
@@ -304,15 +313,16 @@ class Environment:
             ani.save(mypath + f'individual_agents_animation/animation_agent_#{i}.gif', writer='pillow')
 
 # DRIVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def simulate(iterations, num_agents, num_food) :
-    env = Environment(50, 50, num_agents, num_food)
+def simulate(x, y, iterations, num_agents, num_food) :
+    env = Environment(x, y, num_agents, num_food)
     #env.animate_generation(env, iterations, num_agents)
     #env.animate_agent(env, num_agents)
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
+        # print("Speed Distribution: " + str(env.speed_dist))
         env.step()
         
         if i == iterations - 1 :
-            print(env.agent_counts)
-            return(env.agent_counts, env.avg_energy, env.avg_speed, env.avg_size)
+            # print(env.agent_counts)
+            return(env.agent_counts, env.avg_energy, env.avg_speed, env.avg_size, env.speed_dist, env.size_dist)
