@@ -12,12 +12,12 @@ class Agent:
         self.y = y
         self.environment = environment
         self.satiated = False
-        self.energy = 10 # starting energy when agent is spawned
+        self.energy = 10000 # starting energy when agent is spawned
         self.speed = 1
-        self.size = 1
+        self.size = 10
         self.movement_cost = self.speed * (self.size ** 3)# 1/speed to get step cost, * speed^2 as biological limitation, add'l energy for add'l speed
-        self.food_reward = 15 # reward collected for consuming food
-        self.stationary_penalty = 5 # penalty for remaining stationary
+        self.food_reward = 13000 # reward collected for consuming food
+        self.stationary_penalty = 1 # penalty for remaining stationary
 
     def manhattan(self, food):
         return (abs(self.x - food[0]) + abs(self.y - food[1]))
@@ -165,7 +165,7 @@ class Environment:
         new_agents = []
         # random mutation occurs with the following odds
         speed_boost = {0 : 10, 1 : 2, 2 : 1}
-        size_boost = {-0.05:1, 1:10, 0.05:1}
+        size_boost = {0.85:1, 1:8, 1.15:1}
 
         for _ in range(num_survivors):
             # all surviving agents persist the next generation
@@ -181,9 +181,9 @@ class Environment:
             new_agents.append(new_parent)
             # speed of child randomly mutates
             speed = parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
-            size = parent_size * random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0]
-            if size <= 0.05:
-                size = 0.05
+            size = parent_size * (random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0])
+            if size <= 0.1:
+                size = 0.1
             child_agent = Agent(random.randint(0, self.width), random.randint(0, self.height), self)
             child_agent.speed = speed
             child_agent.size = size
