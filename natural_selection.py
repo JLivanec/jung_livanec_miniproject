@@ -225,7 +225,7 @@ class Environment:
         num_survivors_p = int(len(self.predators)/2)
         new_predators = []
         speed_boost = {0 : 10, 1 : 2, 2 : -1}
-        # size_boost = {0.85:1, 1:8, 1.10:1}
+        size_boost = {0.9:1, 1:8, 1.10:1}
         
         for _ in range(num_survivors_p):
             # 50% predator have a chance of reproducing
