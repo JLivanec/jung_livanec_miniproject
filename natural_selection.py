@@ -89,6 +89,7 @@ class Agent:
         if ((self.x, self.y) in self.environment.food_grid):
             self.environment.food_grid.remove((self.x, self.y))
             self.energy += self.food_reward
+            
 
 class Predator(Agent):
     def __init__(self, x, y, environment):
@@ -96,8 +97,14 @@ class Predator(Agent):
         self.speed = 2
         self.size = 15
         self.movement_cost = self.speed * (self.size ** 4)
-        self.food_reward = 100
-        self.stationary_penalty = 1500
+        self.hunt_reward = 100
+        self.stationary_penalty = 15000
+
+    def hunt(self, environment):
+        if ((self.x, self.y) in environment.agents):
+            environment.agents.remove((self.x, self.y))
+            self.energy += self.hunt_reward
+            print('eat!')
 
 # class Prey(Agent):
 #     def __init__(self, x, y, environment):
@@ -164,7 +171,7 @@ class Environment:
             satiation = []
             for i, agent in enumerate(self.agents):
                 agent.move_to_food()
-                [a.eat() for a in self.predators if (a.x, a.y) == (agent.x, agent.y)]
+                [a.hunt(self) for a in self.predators if (a.x, a.y) == (agent.x, agent.y)]
                 satiation.append(agent.satiated)
                 # print(i, len(self.positions), len(self.agents))
                 if len(self.positions) <= i:
@@ -228,25 +235,23 @@ class Environment:
         size_boost = {0.9:1, 1:8, 1.10:1}
         
         for _ in range(num_survivors_p):
-            # 50% predator have a chance of reproducing
-            parent = random.choice(self.predators)
-            # print(parent)
-            parent.x = random.randint(0, self.width)
-            parent.y = random.randint(0, self.height)
-            parent_speed = parent.speed
-            parent_size = parent.size
-            new_parent = Predator(parent.x, parent.y, self)
-            new_parent.speed = parent_speed
-            new_parent.size = parent_size
-            new_predators.append(new_parent)
-            speed = parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
-            size = parent_size * (random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0])
-            if size <= 0.1:
-                size = 0.1
-            child_agent = Predator(random.randint(0, self.width), random.randint(0, self.height), self)
-            child_agent.speed = speed
-            child_agent.size = size
-            new_predators.append(child_agent)
+            p_parent = random.choice(self.predators)
+            p_parent.x = random.randint(0, self.width)
+            p_parent.y = random.randint(0, self.height)
+            p_parent_speed = parent.speed
+            p_parent_size = parent.size
+            p_new_parent = Predator(parent.x, parent.y, self)
+            p_new_parent.speed = p_parent_speed
+            p_new_parent.size = p_parent_size
+            new_predators.append(p_new_parent)
+            p_speed = p_parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
+            p_size = p_parent_size * (random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0])
+            if p_size <= 0.1:
+                p_size = 0.1
+            p_child_agent = Predator(random.randint(0, self.width), random.randint(0, self.height), self)
+            p_child_agent.speed = p_speed
+            p_child_agent.size = p_size
+            new_predators.append(p_child_agent)
     
         self.agents = new_agents
         self.predators = new_predators
