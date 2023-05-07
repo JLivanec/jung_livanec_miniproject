@@ -90,6 +90,24 @@ class Agent:
             self.environment.food_grid.remove((self.x, self.y))
             self.energy += self.food_reward
 
+class Predator(Agent):
+    def __init__(self, x, y, environment):
+        super().__init__(x, y, environment)
+        self.speed = 2
+        self.size = 15
+        self.movement_cost = self.speed * (self.size ** 4)
+        self.food_reward = 100
+        self.stationary_penalty = 1500
+
+# class Prey(Agent):
+#     def __init__(self, x, y, environment):
+#         super().__init__(x, y, environment)
+#         self.speed = 1
+#         self.size = 5
+#         self.movement_cost = self.speed * (self.size ** 3)
+#         self.food_reward = 13000
+#         self.stationary_penalty = 1000
+
 # ENVIRONMENT CLASS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Environment:
     def __init__(self, width, height, num_agents, num_food):
@@ -107,6 +125,10 @@ class Environment:
         self.food_positions = []
         self.speed_dist = []
         self.size_dist = []
+        
+        self.predators = [Predator(random.randint(0, width), random.randint(0, height), self) for _ in range(int(num_agents*0.1))]
+        self.pred_counts = [len(self.predators)]
+        # self.preys = [Prey(random.randint(0, width), random.randint(0, height), self) for _ in range(num_agents)]
 
     def populate_food(self):
         self.food_grid = [(random.randint(0, self.width), random.randint(0, self.height)) for _ in range(self.num_food)]
@@ -115,6 +137,7 @@ class Environment:
 
     def kill_the_weak(self):
         self.agents = [agent for agent in self.agents if agent.energy > 0.0]
+        self.predators = [predator for predator in self.predators if predator.energy > 0.0]
 
     def calculate_energy_avg(self):
         energy = [agent.energy for agent in self.agents]
@@ -141,6 +164,7 @@ class Environment:
             satiation = []
             for i, agent in enumerate(self.agents):
                 agent.move_to_food()
+                [a.eat() for a in self.predators if (a.x, a.y) == (agent.x, agent.y)]
                 satiation.append(agent.satiated)
                 # print(i, len(self.positions), len(self.agents))
                 if len(self.positions) <= i:
@@ -197,11 +221,39 @@ class Environment:
             child_agent.speed = speed
             child_agent.size = size
             new_agents.append(child_agent)
+        
+        num_survivors_p = int(len(self.predators)/2)
+        new_predators = []
+        speed_boost = {0 : 10, 1 : 2, 2 : -1}
+        # size_boost = {0.85:1, 1:8, 1.10:1}
+        
+        for _ in range(num_survivors_p):
+            # 50% predator have a chance of reproducing
+            parent = random.choice(self.predators)
+            # print(parent)
+            parent.x = random.randint(0, self.width)
+            parent.y = random.randint(0, self.height)
+            parent_speed = parent.speed
+            parent_size = parent.size
+            new_parent = Predator(parent.x, parent.y, self)
+            new_parent.speed = parent_speed
+            new_parent.size = parent_size
+            new_predators.append(new_parent)
+            speed = parent_speed + random.choices(list(speed_boost.keys()), weights=list(speed_boost.values()), k=1)[0]
+            size = parent_size * (random.choices(list(size_boost.keys()), weights=list(size_boost.values()), k=1)[0])
+            if size <= 0.1:
+                size = 0.1
+            child_agent = Predator(random.randint(0, self.width), random.randint(0, self.height), self)
+            child_agent.speed = speed
+            child_agent.size = size
+            new_predators.append(child_agent)
     
         self.agents = new_agents
+        self.predators = new_predators
 
         # Add current number of agents to list
         self.agent_counts.append(len(self.agents))
+        self.pred_counts.append(len(self.predators))
         
         # All agents movement plotted
         #mypath = os.path.dirname(os.path.abspath(__file__)) + '/'
@@ -320,9 +372,10 @@ def simulate(x, y, iterations, num_agents, num_food) :
     for i in range(iterations) :
         print("Iteration Number " + str(i+1))
         print("Total Population: " + str(env.agent_counts[i]))
+        print("Predator Population: " + str(env.pred_counts[i]))
         # print("Speed Distribution: " + str(env.speed_dist))
         env.step()
         
         if i == iterations - 1 :
             # print(env.agent_counts)
-            return(env.agent_counts, env.avg_energy, env.avg_speed, env.avg_size, env.speed_dist, env.size_dist)
+            return(env.agent_counts, env.pred_counts, env.avg_energy, env.avg_speed, env.avg_size, env.speed_dist, env.size_dist)
