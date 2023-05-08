@@ -26,14 +26,20 @@ There are a number of parameters that determine agent behavior that can be manip
 * `size_boost` is a dictionary representing possible mutations to the `size` value and their associated probabilities. The default values are `{0.85:1, 1:8, 1.15:1}`
 
 ## Demo
-code/demo.py will run a simulation where starting traits are fixed: `size = 10` and `speed = 5`.
+Download `code/demo.py` and `code/natural_selection.py`
 
-You can adjust:
+You can modify and run demo.py.
+
+Adjustable Parameters:
 * `env_x`
 * `env_y`
 * `generation`
 * `num_agents`
 * `num_food`
+
+Fixed Parameters:
+* `size = 10`
+* `speed = 5`.
 
 The rest of the file will then plot the overall population throughout the simulation, the average values of traits, and the distribution of the traits in the final generation. Running the code multiple times for different configurations is reccommended due to the amount of randomness involved.
 
